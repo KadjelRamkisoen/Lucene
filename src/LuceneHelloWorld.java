@@ -9,6 +9,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -17,44 +18,26 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.apache.tika.exception.TikaException;
+import org.xml.sax.SAXException;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.Arrays;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 
 // https://www.baeldung.com/lucene-analyzers
 
 public class LuceneHelloWorld {
-    public static String removeStopWords(String textFile) throws Exception {
-        //https://lucene.apache.org/core/4_7_0/core/org/apache/lucene/analysis/TokenStream.html
-        // https://stackoverflow.com/questions/23931699/apache-lucene-tokenstream-contract-violation
-        CharArraySet stopWords = EnglishAnalyzer.getDefaultStopSet();
-        StandardAnalyzer standardAnalyzer = new StandardAnalyzer();
-        System.out.println(stopWords);
-        TokenStream tokenStream = standardAnalyzer.tokenStream("context", new StringReader(textFile));
-        tokenStream = new StopFilter(tokenStream, stopWords);
 
-        StringBuilder sb = new StringBuilder();
-
-        CharTermAttribute token = tokenStream.getAttribute(CharTermAttribute.class);
-        tokenStream.reset();
-        System.out.println(token.toString());
-        while (tokenStream.incrementToken()) {
-            if (sb.length() > 0) {
-                sb.append(" ");
-            }
-            sb.append(token.toString());
-        }
-        tokenStream.end();
-        tokenStream.close();
-        return sb.toString();
-    }
-
-
+    /**
+     * getTokensForField
+     * Prints all the terms in the index
+     * @param reader - Reader for the index file
+     * @param fieldName - Name of the field to read from the index
+     * @throws IOException - IOException
+     */
     private static void getTokensForField(IndexReader reader, String fieldName) throws IOException {
         List<LeafReaderContext> list = reader.leaves();
         for (LeafReaderContext lrc : list) {
@@ -64,92 +47,140 @@ public class LuceneHelloWorld {
 
                 BytesRef term;
                 while ((term = termsEnum.next()) != null) {
-                    System.out.println(term.utf8ToString());
+//                    LanguageDetector object = new OptimaizeLangDetector().loadModels();
+//                    LanguageResult result = object.detect(term.utf8ToString());
+
+                    //Print language
+                    System.out.println("Term: " + term.utf8ToString());
+//                    System.out.println("Language: " + result.getLanguage());
+
                 }
             }
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        //New index
-       /* StandardAnalyzer standardAnalyzer = new StandardAnalyzer();
-        Directory directory = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(standardAnalyzer);
-        //Create a writer
-        IndexWriter writer = new IndexWriter(directory, config);
-
-        String docsDirectoryPath = ".//docs_small//full_docs_small";
-        File dir = new File(docsDirectoryPath);
-        File[] directoryListing = dir.listFiles();
-        if (directoryListing != null) {
-            for (File child : directoryListing) {
-                // Do something with child
-                Document document = new Document ();
-                FileReader fileReader =  new FileReader(child);
-                document.add(new TextField("content", fileReader));
-                document.add(new TextField("path", child.getPath(), Field.Store.YES));
-                document.add(new TextField("filename", child.getName(), Field.Store.YES));
-                writer.addDocument(document);
-            }
-        }
-        writer.close();
-*/
-        //New index
-        Analyzer sptilAnalyzer = new WordSplitter();
-
-        Directory directory = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(sptilAnalyzer);
-        //Create a writer
-        IndexWriter writer = new IndexWriter(directory, config);
-        String docsDirectoryPath = ".//docs_small//full_docs_small";
-        File dir = new File(docsDirectoryPath);
-        File[] directoryListing = dir.listFiles();
-        if (directoryListing != null) {
-            for (File child : directoryListing) {
-                // Do something with child
-                Document document = new Document ();
-                FileReader fileReader =  new FileReader(child);
-                document.add(new TextField("content", fileReader));
-                document.add(new TextField("path", child.getPath(), Field.Store.YES));
-                document.add(new TextField("filename", child.getName(), Field.Store.YES));
-                writer.addDocument(document);
-            }
-        }
-        writer.close();
-        //Now let's try to search for Science
+    /**
+     * queryDocuments
+     * * The execution of a query in all the documents
+     * @param directory - Where the indexed documents are
+     * @param sptilAnalyzer - Analyzer object
+     * @param child - Document in root directory of all documents
+     * @param queryString - The query
+     * @return Top documents with hits
+     * @throws IOException - IOException
+     * @throws TikaException - TikaException
+     * @throws SAXException - SAXException
+     * @throws ParseException - ParseException
+     */
+    private static TopDocs queryDocuments (Directory directory, Analyzer sptilAnalyzer, File child, String queryString) throws IOException, TikaException, SAXException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
         QueryParser parser = new QueryParser ("content", sptilAnalyzer);
-        Query query = parser.parse("what was the fundamental cause of the great depression");
+        LanguageDetection languageDetection = new LanguageDetection();
+
+        String queryLanguage = languageDetection.Language(child);
+
+        Query query = parser.parse(queryString);
         TopDocs results = searcher.search(query, 10);
         System.out.println("Hits for Science -->" + results.totalHits);
 
-        List<ScoreDoc> hitsDocs = Arrays.stream((results.scoreDocs)).toList();
-
-        for(ScoreDoc scoreDoc: hitsDocs){
-            System.out.println(reader.document(scoreDoc.doc));
-        }
-
-        //case insensitive search
-        query = parser.parse("what was the fundamental cause of the great depression");
-        results = searcher.search(query, 10);
-        System.out.println("Hits for science insensitive -->" + results.totalHits);
-
-        hitsDocs = Arrays.stream((results.scoreDocs)).toList();
-
-        for(ScoreDoc scoreDoc: hitsDocs){
-            System.out.println(reader.document(scoreDoc.doc));
-        }
-        System.out.println();
-        //System.out.println(removeStopWords("Science & Mathematics PhysicsThe hot glowing surfaces of stars emit energy in the form of electromagnetic radiation.?It is a good approximation to assume that the emissivity e is equal to 1 for these surfaces.  Find the radius of the star Rigel, the bright blue star in the constellation Orion that radiates energy at a rate of 2.7 x 10^32 W and has a surface temperature of 11,000 K. Assume that the star is spherical. Use σ =... show moreFollow 3 answersAnswersRelevanceRatingNewestOldestBest Answer: Stefan-Boltzmann law states that the energy flux by radiation is proportional to the forth power of the temperature: q = ε · σ · T^4 The total energy flux at a spherical surface of Radius R is Q = q·π·R² = ε·σ·T^4·π·R² Hence the radius is R = √ ( Q / (ε·σ·T^4·π) ) = √ ( 2.7x10+32 W / (1 · 5.67x10-8W/m²K^4 · (1100K)^4 · π) ) = 3.22x10+13 mSource (s):http://en.wikipedia.org/wiki/Stefan_bolt...schmiso · 1 decade ago0 18 CommentSchmiso, you forgot a 4 in your answer. Your link even says it: L = 4pi (R^2)sigma (T^4). Using L, luminosity, as the energy in this problem, you can find the radius R by doing sqrt (L/ (4pisigma (T^4)). Hope this helps everyone.Caroline · 4 years ago4 1 Comment (Stefan-Boltzmann law) L = 4pi*R^2*sigma*T^4 Solving for R we get: => R = (1/ (2T^2)) * sqrt (L/ (pi*sigma)) Plugging in your values you should get: => R = (1/ (2 (11,000K)^2)) *sqrt ( (2.7*10^32W)/ (pi * (5.67*10^-8 W/m^2K^4))) R = 1.609 * 10^11 m? · 3 years ago0 1 CommentMaybe you would like to learn more about one of these?Want to build a free website? Interested in dating sites?Need a Home Security Safe? How to order contacts online?\n"));
-
-        reader = DirectoryReader.open(directory);
-        getTokensForField(reader, "content");
-
-
+        return results;
     }
 
-}
+    /**
+     * readQueryTsv
+     * To read the .tsv file that contains the queries
+     * @param queryFile -  The tsv file with all the queries
+     * @return array of queries
+     */
+    private static ArrayList<String[]> readQueryTsv(File queryFile){
+        ArrayList<String[]> Data = new ArrayList<>(); //initializing a new ArrayList out of String[]'s
 
-// stop words
-// lemmatization
+        try (BufferedReader TSVReader = new BufferedReader(new FileReader(queryFile))) {
+            String line;
+            while ((line = TSVReader.readLine()) != null) {
+                String[] lineItems = line.split("\t"); //splitting the line and adding its items in String[]
+                Data.add(lineItems); //adding the splitted line array to the ArrayList
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
+        }
+        return Data;
+    }
+
+    /**
+     * main
+     * To execute the querying
+     * @param args - arguments
+     * @throws Exception - Exception
+     */
+    public static void main(String[] args) throws Exception {
+        //New index
+        Analyzer sptilAnalyzer = new WordSplitter();
+        Directory directory = new RAMDirectory();
+        IndexWriterConfig config = new IndexWriterConfig(sptilAnalyzer);
+
+        //Create a writer
+        IndexWriter writer = new IndexWriter(directory, config);
+        String docsDirectoryPath = ".//docs_small//full_docs_small";
+        File dir = new File(docsDirectoryPath);
+        File[] directoryListing = dir.listFiles();
+        int i = 0;
+        Hashtable<String, Integer> myDict = new Hashtable<String, Integer>();
+
+        if (directoryListing != null) {
+            for (File child : directoryListing) {
+                // Do something with child
+                Document document = new Document ();
+                FileReader fileReader =  new FileReader(child);
+                LanguageDetection languageDetection = new LanguageDetection();
+
+                String docLanguage = languageDetection.Language(child);
+
+                document.add(new TextField("content", fileReader));
+                document.add(new TextField("path", child.getPath(), Field.Store.YES));
+                document.add(new TextField("filename", child.getName(), Field.Store.YES));
+                document.add(new TextField("language", docLanguage, Field.Store.YES));
+//                System.out.println("File: " + child.getName());
+//                System.out.println("Doc Language: " + docLanguage);
+                writer.addDocument(document);
+
+                if (!myDict.containsKey(docLanguage)){
+                    myDict.put(docLanguage, 1);
+                }else{
+                    myDict.put(docLanguage, myDict.get(docLanguage) + 1);
+                }
+
+                if (!docLanguage.equals("en")){
+                    System.out.println(docLanguage + ": " + child.getName());
+                }
+            }
+        }
+        System.out.println("Language dict: " + myDict);
+
+        writer.close();
+
+        //Now let's try to query
+        File queryFile = new File("dev_queries.tsv");
+        ArrayList<String[]> queries = readQueryTsv(queryFile);
+
+        Hashtable<String, Integer> myQueryDict = new Hashtable<String, Integer>();
+        LanguageDetection languageDetection = new LanguageDetection();
+        for (String[] g: queries){
+            String queryLanguage = languageDetection.Language(g[1]);
+
+            if (!myQueryDict.containsKey(queryLanguage)){
+                myQueryDict.put(queryLanguage, 1);
+            }else{
+                myQueryDict.put(queryLanguage, myQueryDict.get(queryLanguage) + 1);
+            }
+
+            if (!queryLanguage.equals("en")){
+                System.out.println(queryLanguage + ": " + g[0] + "-" + g[1]);
+            }
+        }
+        System.out.println(myQueryDict);
+//        reader = DirectoryReader.open(directory);
+//        getTokensForField(reader, "content");
+    }
+}
