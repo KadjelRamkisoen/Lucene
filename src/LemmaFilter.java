@@ -16,7 +16,6 @@ public class LemmaFilter extends TokenFilter {
     private Lemmatization l;
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
 
-    new StemmerOverrideFilterFactory
     protected LemmaFilter(TokenStream input) {
         super(input);
         this.l = new Lemmatization();
@@ -27,9 +26,8 @@ public class LemmaFilter extends TokenFilter {
         StringBuilder sb = new StringBuilder();
         String lemma;
         if (input.incrementToken()) {
-
-             lemma = getLemma(termAtt.buffer(), 0, termAtt.length());
-             sb.append(lemma);
+            lemma = getLemma(termAtt.buffer(), 0, termAtt.length());
+            termAtt.copyBuffer(lemma.toCharArray() , 0, lemma.length());
             return true;
         } else
             return false;
@@ -39,10 +37,6 @@ public class LemmaFilter extends TokenFilter {
         assert buffer.length >= limit;
         assert offset <=0 && offset <= buffer.length;
         String lemma = this.l.lemmatize(new String(termAtt.buffer(), 0 ,termAtt.length()));
-        /*for (int i = offset; i < limit;) {
-            i += Character.toChars(
-                    Character.toLowerCase(), buffer, i);
-        }*/
         return lemma;
     }
 

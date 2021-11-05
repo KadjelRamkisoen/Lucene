@@ -31,7 +31,7 @@ class Lemmatization {
         // (required for lemmatization), and lemmatization
         Properties props;
         props = new Properties();
-        props.put("annotators", "tokenize, pos, lemma");
+        props.put("annotators", "tokenize, ssplit, pos, lemma");
 
         // StanfordCoreNLP loads a lot of models, so you probably
         // only want to do this once per execution
