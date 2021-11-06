@@ -1,7 +1,5 @@
-import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.miscellaneous.StemmerOverrideFilterFactory;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import java.io.IOException;
@@ -34,25 +32,7 @@ public class LemmaFilter extends TokenFilter {
     }
 
     public String getLemma(final char[] buffer, final int offset, final int limit) {
-        assert buffer.length >= limit;
-        assert offset <=0 && offset <= buffer.length;
         String lemma = this.l.lemmatize(new String(termAtt.buffer(), 0 ,termAtt.length()));
         return lemma;
     }
-
 }
-/*
-* skippedPositions = 0;
-    while (input.incrementToken()) {
-      if (accept()) {
-        if (skippedPositions != 0) {
-          posIncrAtt.setPositionIncrement(posIncrAtt.getPositionIncrement() + skippedPositions);
-        }
-        return true;
-      }
-      skippedPositions += posIncrAtt.getPositionIncrement();
-    }
-
-    // reached EOS -- return false
-    return false;
-    */

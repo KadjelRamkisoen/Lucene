@@ -1,20 +1,20 @@
-import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.util.CoreMap;
-import org.apache.lucene.analysis.*;
-import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.StopFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilterFactory;
+import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
+import org.apache.lucene.analysis.standard.ClassicTokenizer;
 import org.apache.lucene.analysis.standard.StandardFilter;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public class WordSplitter extends Analyzer {
 // https://riptutorial.com/lucene/example/17013/creating-a-custom-analyzer
@@ -23,11 +23,10 @@ public class WordSplitter extends Analyzer {
     private WordDelimiterGraphFilterFactory getWordDelimiter() {
         Map<String, String> settings = new HashMap<>();
         settings.put("generateWordParts", "1");   // e.g. "PowerShot" => "Power" "Shot"
-        settings.put("generateNumberParts", "0"); // e.g. "500-42" => "500" "42"
-        settings.put("catenateWords", "1");         // e.g. "wi-fi" => "wifi" and "500-42" => "50042"
+        //settings.put("generateNumberParts", "0"); // e.g. "500-42" => "500" "42"
+        //settings.put("catenateWords", "1");         // e.g. "wi-fi" => "wifi" and "500-42" => "50042"
         settings.put("preserveOriginal", "0");    // e.g. "500-42" => "500" "42" "500-42"
         settings.put("splitOnCaseChange", "1");   // e.g. "fooBar" => "foo" "Bar"
-        settings.put("preserveOriginal", "0");   // e.g. "fooBar" => "foo" "Bar"
         settings.put("splitOnNumerics", "1");   // e.g. "fooBar" => "foo" "Bar"
         settings.put("stemEnglishPossessive", "1");   // e.g. "fooBar" => "foo" "Bar"
 
@@ -43,36 +42,53 @@ public class WordSplitter extends Analyzer {
     public WordSplitter() throws IOException {
         Analyzer analyzer = CustomAnalyzer.builder()
                 .withTokenizer("standard")
-                .addTokenFilter("lowercase")
+                /*.addTokenFilter("lowercase")
                 .addTokenFilter("stop")
                 .addTokenFilter("porterstem")
                 .addTokenFilter("capitalization")
-                .addTokenFilter("standard")
+                .addTokenFilter("standard")*/
                 .build();
     }
 
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
 
-        Tokenizer tokenizer = new StandardTokenizer();
-        TokenStream stream = new StandardFilter(tokenizer);
+        Tokenizer tokenizer = new ClassicTokenizer();
+        //TokenStream stream = new StandardFilter(tokenizer);
+        TokenStream stream = getWordDelimiter().create(tokenizer);
+        stream = new LowerCaseFilter(stream);
+        stream = new StopFilter(stream, StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+        //stream = new StandardFilter(tokenizer);
+        stream = new NumberFilter(stream);
+        try {
+            stream = new SpellFilter(stream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        stream = new LemmaFilter(stream);
+        stream = new StandardFilter(stream);
+        stream = new RemoveDuplicatesTokenFilter(stream);
+        Pattern p = Pattern.compile("[\\?\\*]");
+        boolean replaceAll = Boolean.TRUE;
+        stream = new PatternReplaceFilter(stream, p, "", replaceAll);
 
+        /*
+        //
+        TokenFilterFactory.availableTokenFilters();
+        System.out.println(TokenizerFactory.availableTokenizers());
         //Order matters!  If LowerCaseFilter and StopFilter were swapped here, StopFilter's
         //matching would be case sensitive, so "the" would be eliminated, but not "The"
 
 
-        stream = getWordDelimiter().create(stream);
-        stream = new LowerCaseFilter(stream);
-        stream = new StopFilter(stream, StopAnalyzer.ENGLISH_STOP_WORDS_SET);
-        stream = new NumberFilter(stream);
         stream = new LemmaFilter(stream);
-        stream = new StandardFilter(stream);
+      //
+        Set<String> str = TokenFilterFactory.availableTokenFilters();
 
-
+        stream = new DelimitedTermFrequencyTokenFilter(stream);
+        System.out.println(str);
         stream = new CachingTokenFilter(stream);
-
+*/
         return new TokenStreamComponents(tokenizer, stream);
     }
-
 
 }

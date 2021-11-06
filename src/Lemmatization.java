@@ -12,7 +12,6 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
