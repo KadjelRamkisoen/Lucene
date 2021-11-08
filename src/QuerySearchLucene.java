@@ -71,7 +71,16 @@ public class QuerySearchLucene {
         System.out.println("That took " + (endTime - startTime)/1000 + " seconds");
     }
 
-    //testing various of queries
+    /**
+     * testBooleanQueryDocuments
+     * Test the search with the boolean query documents
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The results
+     * @throws IOException
+     * @throws ParseException
+     */
     private static TopDocs testBooleanQueryDocuments(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -87,6 +96,16 @@ public class QuerySearchLucene {
         return results;
     }
 
+    /**
+     * testQueryParserDocuments
+     * Test the search with the query parser in documents
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The results
+     * @throws IOException IOException
+     * @throws ParseException ParseException
+     */
     private static TopDocs testQueryParserDocuments(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -99,6 +118,16 @@ public class QuerySearchLucene {
         return results;
     }
 
+    /**
+     * testExtenableParserDocuments
+     * Test the search with the extenable pareser in documents
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The top documents with search hits
+     * @throws IOException
+     * @throws ParseException
+     */
     private static TopDocs testExtenableParserDocuments(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -110,6 +139,16 @@ public class QuerySearchLucene {
         return results;
     }
 
+    /**
+     * testPhraseQueryDocuments
+     * Test search with phrase query dcuments
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The top documents with search hits
+     * @throws IOException
+     * @throws ParseException
+     */
     private static TopDocs testPhraseQueryDocuments(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -128,6 +167,16 @@ public class QuerySearchLucene {
         return results;
     }
 
+    /**
+     * testSimilarityQueryDocuments
+     * Test the search with similarity scores in documents
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The top documents with search hits
+     * @throws IOException
+     * @throws ParseException
+     */
     private static TopDocs testSimilarityQueryDocuments(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -152,6 +201,16 @@ public class QuerySearchLucene {
         return results;
     }
 
+    /**
+     * runSearch
+     * To test the searching using BM25, minShouldMatchQuery
+     * @param directory The directory where the index is
+     * @param splitAnalyzer The analyzer/splitter for processing the data
+     * @param queryString The query in string format
+     * @return The top documents with search hits
+     * @throws IOException
+     * @throws ParseException
+     */
     private static TopDocs runSearch(Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
@@ -170,6 +229,12 @@ public class QuerySearchLucene {
         }
         return results;
     }
+
+    /**
+     * readQueryTsv
+     * @param queryFile The TSV files with the queries
+     * @return Processable file with queries
+     */
     private static ArrayList<String[]> readQueryTsv(File queryFile){
         ArrayList<String[]> Data = new ArrayList<>(); //initializing a new ArrayList out of String[]'s
 

@@ -41,6 +41,12 @@ public class WordSplitter extends Analyzer {
                 .build();
     }
 
+    /**
+     * TokenStreamComponents
+     * Process the documents and create tokens
+     * @param fieldName
+     * @return
+     */
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
 

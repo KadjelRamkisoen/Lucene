@@ -13,6 +13,15 @@ import org.xml.sax.SAXException;
 
 class LanguageDetection {
 
+    /**
+     * Language
+     * To find the language for a document
+     * @param file document for which to find the language
+     * @return language
+     * @throws IOException
+     * @throws SAXException
+     * @throws TikaException
+     */
     public String Language(File file) throws IOException, SAXException, TikaException {
         Scanner sc = new Scanner(file);
         //new LanguageProfileReader();
@@ -31,6 +40,15 @@ class LanguageDetection {
         return result.getLanguage();
     }
 
+    /**
+     * Language
+     To find the language for a document
+     * @param string String for which to find the language
+     * @return language
+     * @throws IOException
+     * @throws SAXException
+     * @throws TikaException
+     */
     public String Language(String string) throws IOException, SAXException, TikaException {
         //Detect language
         LanguageDetector object = new OptimaizeLangDetector().loadModels();

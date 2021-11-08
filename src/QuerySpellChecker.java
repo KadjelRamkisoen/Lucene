@@ -35,6 +35,13 @@ public class QuerySpellChecker {
         spellchecker.indexDictionary(wordDict, config, true);
     }
 
+    /**
+     * querySpellCheckerCreation
+     * Check spelling in queries
+     * @param field
+     * @return Similar sugestions
+     * @throws IOException
+     */
     public String querySpellCheckerCreation(String field) throws IOException {
         String[] suggestions = spellchecker.suggestSimilar(field, 1, 0.7f);
         if (spellchecker.exist(field)) {
