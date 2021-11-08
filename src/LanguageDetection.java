@@ -15,7 +15,7 @@ class LanguageDetection {
 
     public String Language(File file) throws IOException, SAXException, TikaException {
         Scanner sc = new Scanner(file);
-
+        //new LanguageProfileReader();
         //Store the file in one string
         sc.useDelimiter("\\p{javaWhitespace}+");
 

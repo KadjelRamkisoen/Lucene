@@ -11,6 +11,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.exception.TikaException;
@@ -33,7 +34,7 @@ public class QuerySearchLucene {
         long startTime = System.currentTimeMillis();
         System.out.println("start_date: " + startTime);
         Analyzer splitAnalyzer = new WordSplitter();
-        Path path = Paths.get(".//indexes_big");
+        Path path = Paths.get(".//indexes");
         Directory directory = FSDirectory.open(path);
         IndexWriterConfig config = new IndexWriterConfig(splitAnalyzer);
         IndexReader reader = DirectoryReader.open(directory);
@@ -47,7 +48,7 @@ public class QuerySearchLucene {
         Integer[] record = new Integer[2];
         String[] words;
         ArrayList<Integer[]> query_results = new ArrayList<>();
-        FileWriter writer = new FileWriter("output_big.txt");
+        FileWriter writer = new FileWriter("output_multi_BM25_Dirih_sim.txt");
         writer.write( "Query_number" + "\t" + "Doc_number" + "\t" + "rating" + "\n");
         //System.out.println(Arrays.toString(queries.toArray()));
         for (String[] g: queries){
@@ -85,10 +86,19 @@ i++;
     private static TopDocs queryDocuments (Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, TikaException, SAXException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
+        //System.out.println(searcher.getSimilarity(true));
+        Similarity[] sims = new Similarity[2];
+        sims[0] = new BM25Similarity(1.2F, 0.1F);
+        sims[1] = new LMDirichletSimilarity(2500);
+        //Similarity similarity = new BM25Similarity(1.2F, 0.1F);
+
+        Similarity similarity = new MultiSimilarity(sims);
+
+        searcher.setSimilarity(similarity);
         QueryParser parser = new ComplexPhraseQueryParser("content", splitAnalyzer);
 
         Query query = parser.parse(queryString);
-        TopDocs results = searcher.search(query, 500);
+        TopDocs results = searcher.search(query, 10);
         System.out.println("Query text: " + query.toString());
         System.out.println("Hits for " + queryString + " -->" + results.totalHits);
 
