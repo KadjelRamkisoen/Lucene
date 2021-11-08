@@ -1,6 +1,7 @@
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+
 //https://stackoverflow.com/questions/46050874/lucene-tokenfilter-with-englishanalyzer-for-removing-numbers-in-scientific-artic
 
 import java.io.IOException;

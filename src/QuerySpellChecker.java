@@ -1,24 +1,23 @@
-import edu.stanford.nlp.util.ArrayUtils;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.spell.*;
-
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.spell.Dictionary;
-import org.apache.lucene.search.spell.PlainTextDictionary;
-import org.apache.lucene.search.spell.SpellChecker;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
-// https://github.com/dwyl/english-words/blob/master/words_alpha.txt - word list
-
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+// https://github.com/dwyl/english-words/blob/master/words_alpha.txt - word list
 
 public class QuerySpellChecker {
     Dictionary wordDict;
@@ -34,7 +33,6 @@ public class QuerySpellChecker {
         Analyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         spellchecker.indexDictionary(wordDict, config, true);
-        //spellchecker = new SpellChecker(new RAMDirectory());
     }
 
     public String querySpellCheckerCreation(String field) throws IOException {
@@ -44,7 +42,7 @@ public class QuerySpellChecker {
         }
         else {
             if(suggestions!=null && suggestions.length > 0) {
-                return suggestions[0]; // This means there are some elements inside name array.
+                return suggestions[0];
             } else {
                 return field;
             }
@@ -53,9 +51,21 @@ public class QuerySpellChecker {
     }
 
     public static void main (String args[]) throws IOException {
+        /*
         QuerySpellChecker query = new QuerySpellChecker(new LuceneLevenshteinDistance());
         String suggestion = query.querySpellCheckerCreation("somthing");
-        System.out.println(suggestion);
-
+        System.out.println(suggestion);*/
+        ArrayList<String> myStopwordList = new ArrayList<>(); //initializing a new ArrayList out of String[]'s
+        File queryFile = new File("stop_words.txt");
+        try (BufferedReader TSVReader = new BufferedReader(new FileReader(queryFile))) {
+            String line;
+            while ((line = TSVReader.readLine()) != null) {
+                myStopwordList.add(line); //adding the splitted line array to the ArrayList
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
+        }
+        CharArraySet stopset = StopFilter.makeStopSet(myStopwordList);
+        System.out.println(stopset);
     }
 }

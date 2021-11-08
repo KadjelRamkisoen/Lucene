@@ -22,18 +22,14 @@ class Lemmatization {
     public static void main(String[] args) throws IOException {
         Lemmatization l = new Lemmatization();
         l.stem("staying");
-
     }
 
     public Lemmatization(){
-        // Create StanfordCoreNLP object properties, with POS tagging
-        // (required for lemmatization), and lemmatization
+        // Create StanfordCoreNLP object properties
         Properties props;
         props = new Properties();
         props.put("annotators", "tokenize, ssplit, pos, lemma");
 
-        // StanfordCoreNLP loads a lot of models, so you probably
-        // only want to do this once per execution
         this.pipeline = new StanfordCoreNLP(props);
     }
 
@@ -42,12 +38,11 @@ class Lemmatization {
         TokenStream stream = analyzer.tokenStream("content", documentText);
         stream.reset();
         while (stream.incrementToken()) {
-            String lemma = stream.getAttribute(CharTermAttribute.class).toString();
-            System.out.println("lemma: " + lemma + " ");
+            String stem = stream.getAttribute(CharTermAttribute.class).toString();
+            System.out.println("stem: " + stem + " ");
         }
         stream.end();
         stream.close();
-
     }
 
     public String lemmatize(String documentText){

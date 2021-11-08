@@ -21,7 +21,6 @@ public class LemmaFilter extends TokenFilter {
 
     @Override
     public boolean incrementToken() throws IOException {
-        StringBuilder sb = new StringBuilder();
         String lemma;
         if (input.incrementToken()) {
             lemma = getLemma(termAtt.buffer(), 0, termAtt.length());

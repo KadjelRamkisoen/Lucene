@@ -1,10 +1,4 @@
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
@@ -15,24 +9,30 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.spell.LuceneLevenshteinDistance;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.Arrays;
 import java.util.List;
 
 
 // https://www.baeldung.com/lucene-analyzers
 
-public class LuceneHelloWorld {
+public class IndexingLucene {
 
     /**
-     * getTokensForField
+     * Print out all the tokens
      * Prints all the terms in the index
      * @param reader - Reader for the index file
      * @param fieldName - Name of the field to read from the index
@@ -40,6 +40,9 @@ public class LuceneHelloWorld {
      */
     private static void getTokensForField(IndexReader reader, String fieldName) throws IOException {
         List<LeafReaderContext> list = reader.leaves();
+        QuerySpellChecker query = new QuerySpellChecker(new LuceneLevenshteinDistance());
+        String suggestion;
+
         for (LeafReaderContext lrc : list) {
             Terms terms = lrc.reader().terms(fieldName);
             if (terms != null) {
@@ -49,22 +52,50 @@ public class LuceneHelloWorld {
                 while ((term = termsEnum.next()) != null) {
 //                    LanguageDetector object = new OptimaizeLangDetector().loadModels();
 //                    LanguageResult result = object.detect(term.utf8ToString());
-
-                    //Print language
-                    System.out.println("Term: " + term.utf8ToString());
-//                    System.out.println("Language: " + result.getLanguage());
-
+                    suggestion = query.querySpellCheckerCreation(term.utf8ToString());
+                    if (!term.utf8ToString().equals(suggestion)) {
+                        //Print spell corrections
+                        System.out.println("Term: " + term.utf8ToString());
+                        System.out.println("Correction: " + suggestion);
+                        System.out.println("Correction: " + suggestion);
+                        // print language
+                        //System.out.println("Language: " + result.getLanguage());
+                    }
                 }
             }
         }
     }
 
     /**
+     * Calculates the number of tokens in stream
+     * @param reader
+     * @param fieldName
+     * @throws IOException
+     */
+    private static void getLength(IndexReader reader, String fieldName) throws IOException {
+        List<LeafReaderContext> list = reader.leaves();
+        int i = 0;
+        for (LeafReaderContext lrc : list) {
+            Terms terms = lrc.reader().terms(fieldName);
+            if (terms != null) {
+                TermsEnum termsEnum = terms.iterator();
+
+                BytesRef term;
+                while ((term = termsEnum.next()) != null) {
+                        System.out.println("Term: " + term.utf8ToString());
+                        i++;
+                    System.out.println("current i : " + i);
+                }
+            }
+        }
+        System.out.println("Length: " + i);
+    }
+
+    /**
      * queryDocuments
      * * The execution of a query in all the documents
      * @param directory - Where the indexed documents are
-     * @param sptilAnalyzer - Analyzer object
-     * @param child - Document in root directory of all documents
+     * @param splitAnalyzer - Analyzer object
      * @param queryString - The query
      * @return Top documents with hits
      * @throws IOException - IOException
@@ -72,18 +103,22 @@ public class LuceneHelloWorld {
      * @throws SAXException - SAXException
      * @throws ParseException - ParseException
      */
-    private static TopDocs queryDocuments (Directory directory, Analyzer sptilAnalyzer, File child, String queryString) throws IOException, TikaException, SAXException, ParseException {
+    private static TopDocs queryDocuments (Directory directory, Analyzer splitAnalyzer,  String queryString) throws IOException, TikaException, SAXException, ParseException {
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher (reader);
-        QueryParser parser = new QueryParser ("content", sptilAnalyzer);
-        LanguageDetection languageDetection = new LanguageDetection();
-
-        String queryLanguage = languageDetection.Language(child);
+        QueryParser parser = new QueryParser ("content", splitAnalyzer);
+        //LanguageDetection languageDetection = new LanguageDetection();
+        //String queryLanguage = languageDetection.Language(child);
 
         Query query = parser.parse(queryString);
         TopDocs results = searcher.search(query, 10);
         System.out.println("Hits for Science -->" + results.totalHits);
 
+        List<ScoreDoc> hitsDocs = Arrays.stream((results.scoreDocs)).toList();
+
+        for(ScoreDoc scoreDoc: hitsDocs){
+            System.out.println(reader.document(scoreDoc.doc));
+        }
         return results;
     }
 
@@ -109,78 +144,62 @@ public class LuceneHelloWorld {
     }
 
     /**
-     * main
+     * Runs indexing of set of the documents
      * To execute the querying
      * @param args - arguments
      * @throws Exception - Exception
      */
     public static void main(String[] args) throws Exception {
-        //New index
-        Analyzer sptilAnalyzer = new WordSplitter();
-        Directory directory = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(sptilAnalyzer);
+        // time it
+        long startTime = System.currentTimeMillis();
+        System.out.println("start_date: " + startTime);
+
+        Analyzer splitAnalyzer = new WordSplitter();
+        // set the folder for indexes
+        Path path = Paths.get(".//indexes_big");
+        Directory directory = FSDirectory.open(path);
+        IndexWriterConfig config = new IndexWriterConfig(splitAnalyzer);
 
         //Create a writer
         IndexWriter writer = new IndexWriter(directory, config);
-        String docsDirectoryPath = ".//docs_small//full_docs_small";
+        // set path to a set of gocuments
+        String docsDirectoryPath = ".//full_docs//full_docs";
         File dir = new File(docsDirectoryPath);
         File[] directoryListing = dir.listFiles();
-        int i = 0;
-        Hashtable<String, Integer> myDict = new Hashtable<String, Integer>();
+       // Hashtable<String, Integer> myDict = new Hashtable<String, Integer>();
 
         if (directoryListing != null) {
             for (File child : directoryListing) {
-                // Do something with child
                 Document document = new Document ();
                 FileReader fileReader =  new FileReader(child);
-                LanguageDetection languageDetection = new LanguageDetection();
+                //LanguageDetection languageDetection = new LanguageDetection();
 
-                String docLanguage = languageDetection.Language(child);
-
+                //String docLanguage = languageDetection.Language(child);
+                //System.out.println(child.getName());
                 document.add(new TextField("content", fileReader));
                 document.add(new TextField("path", child.getPath(), Field.Store.YES));
                 document.add(new TextField("filename", child.getName(), Field.Store.YES));
-                document.add(new TextField("language", docLanguage, Field.Store.YES));
+                System.out.println(child.getName());
+                //document.add(new TextField("language", docLanguage, Field.Store.YES));
 //                System.out.println("File: " + child.getName());
 //                System.out.println("Doc Language: " + docLanguage);
                 writer.addDocument(document);
-
-                if (!myDict.containsKey(docLanguage)){
+/*                if (!myDict.containsKey(docLanguage)){
                     myDict.put(docLanguage, 1);
-                }else{
+                } else {
                     myDict.put(docLanguage, myDict.get(docLanguage) + 1);
                 }
 
                 if (!docLanguage.equals("en")){
                     System.out.println(docLanguage + ": " + child.getName());
-                }
+                }*/
             }
         }
-        System.out.println("Language dict: " + myDict);
+  //      System.out.println("Language dict: " + myDict);
 
         writer.close();
-
-        //Now let's try to query
-        File queryFile = new File("dev_queries.tsv");
-        ArrayList<String[]> queries = readQueryTsv(queryFile);
-
-        Hashtable<String, Integer> myQueryDict = new Hashtable<String, Integer>();
-        LanguageDetection languageDetection = new LanguageDetection();
-        for (String[] g: queries){
-            String queryLanguage = languageDetection.Language(g[1]);
-
-            if (!myQueryDict.containsKey(queryLanguage)){
-                myQueryDict.put(queryLanguage, 1);
-            }else{
-                myQueryDict.put(queryLanguage, myQueryDict.get(queryLanguage) + 1);
-            }
-
-            if (!queryLanguage.equals("en")){
-                System.out.println(queryLanguage + ": " + g[0] + "-" + g[1]);
-            }
-        }
-        System.out.println(myQueryDict);
-//        reader = DirectoryReader.open(directory);
-//        getTokensForField(reader, "content");
+        long endTime = System.currentTimeMillis();
+        System.out.println("end_date: " + endTime);
+        System.out.println("That took " + (endTime - startTime)/1000 + " seconds");
     }
 }

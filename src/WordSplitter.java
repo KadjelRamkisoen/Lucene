@@ -1,7 +1,4 @@
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.StopFilter;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
@@ -9,7 +6,11 @@ import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilterFactory;
 import org.apache.lucene.analysis.standard.ClassicTokenizer;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,43 +47,37 @@ public class WordSplitter extends Analyzer {
         Tokenizer tokenizer = new ClassicTokenizer();
         TokenStream stream = getWordDelimiter().create(tokenizer);
         stream = new LowerCaseFilter(stream);
-        stream = new StopFilter(stream, StopAnalyzer.ENGLISH_STOP_WORDS_SET);
-        //stream = new StandardFilter(tokenizer);
+        stream = new StopFilter(stream, getStopWords());
+
         stream = new NumberFilter(stream);
         try {
             stream = new SpellFilter(stream);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         stream = new LemmaFilter(stream);
-
         stream = new RemoveDuplicatesTokenFilter(stream);
 
-
-        /*
-        //Pattern p = Pattern.compile("[\\?\\*]");
-        //boolean replaceAll = Boolean.TRUE;
-        //stream = new PatternReplaceFilter(stream, p, "", replaceAll);
-        TokenFilterFactory.availableTokenFilters();
-        System.out.println(TokenizerFactory.availableTokenizers());
-        //Order matters!  If LowerCaseFilter and StopFilter were swapped here, StopFilter's
-        //matching would be case sensitive, so "the" would be eliminated, but not "The"
-
-
-        stream = new LemmaFilter(stream);
-      //
-        Set<String> str = TokenFilterFactory.availableTokenFilters();
-
-        stream = new DelimitedTermFrequencyTokenFilter(stream);
-        System.out.println(str);
-        stream = new CachingTokenFilter(stream);
-*/
         return new TokenStreamComponents(tokenizer, stream);
     }
     public int calculateStreamLength(TokenStream stream) throws IOException {
         int i = 0;
         System.out.println(stream.toString());
         return i;
+    }
+
+    protected static CharArraySet getStopWords(){
+        ArrayList<String> myStopwordList = new ArrayList<>(); //initializing a new ArrayList out of String[]'s
+        File wordListFile = new File("stop_words.txt");
+        try (BufferedReader TSVReader = new BufferedReader(new FileReader(wordListFile))) {
+            String line;
+            while ((line = TSVReader.readLine()) != null) {
+                myStopwordList.add(line); //adding the splitted line array to the ArrayList
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong");
+        }
+        CharArraySet stopset = org.apache.lucene.analysis.core.StopFilter.makeStopSet(myStopwordList);
+        return stopset;
     }
 }
